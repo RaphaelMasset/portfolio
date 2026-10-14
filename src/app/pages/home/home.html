@@ -1,0 +1,165 @@
+<div class="page" [class.about-open]="showAbout()">
+  <!-- Bouton mobile : bascule C4 (carrousel) ↔ C1+C3 -->
+  <button class="about-toggle" type="button" (click)="toggleAbout()">
+    {{ showAbout() ? copy.work : copy.about }}
+  </button>
+
+  <div class="desktop-grid">
+    <section class="c1">
+      <div class="identity">
+        <img class="photo" src="assets/profile.jpg" alt="Raphaël Masset" />
+        <div class="who">
+          <p class="name">{{ copy.name }}</p>
+          <p class="roles">
+            {{ copy.role1 }}<br />
+            {{ copy.role2 }}<br />
+            {{ copy.role3 }}
+          </p>
+        </div>
+      </div>
+      <div class="c1-actions">
+        <a [href]="linkedin" target="_blank" rel="noopener">{{ copy.linkedin }}</a>
+        <a [href]="github" target="_blank" rel="noopener">{{ copy.github }}</a>
+        <button class="contact-btn" type="button" (click)="openContact()">{{ copy.contact }}</button>
+      </div>
+    </section>
+
+    <section class="c2">
+      <div class="c2-top">
+        <h1 class="project-title">{{ portfolio.title() }}</h1>
+        <div class="lang-switch">
+          <button type="button" [class.active]="i18n.lang() === 'fr'" (click)="i18n.set('fr')">FR</button>
+          <span>/</span>
+          <button type="button" [class.active]="i18n.lang() === 'en'" (click)="i18n.set('en')">EN</button>
+        </div>
+      </div>
+      <p class="project-desc">{{ portfolio.description() }}</p>
+    </section>
+
+    <div class="meta">
+      <div class="meta-left">
+        <p class="meta-label">{{ copy.servicesLabel }}</p>
+        <p class="meta-value">{{ copy.services }}</p>
+      </div>
+      <div class="meta-mid">
+        <p class="meta-label">{{ copy.availableLabel }}</p>
+        <p class="meta-value">{{ copy.available }}</p>
+      </div>
+      <div class="meta-right">
+        <p class="meta-label">{{ copy.scroll }}</p>
+        <p class="meta-value counter">{{ portfolio.counter() }}</p>
+      </div>
+    </div>
+
+    <section class="c3">
+      <p class="letter">{{ copy.coverLetter }}</p>
+    </section>
+
+    <section
+      class="c4"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (pointercancel)="onPointerUp($event)"
+    >
+      <div class="track" #track>
+        @for (project of projects; track project.slug; let i = $index) {
+          <button
+            #slideEl
+            class="slide"
+            type="button"
+            [class.is-active]="i === portfolio.index()"
+            (click)="openProject(i, $event)"
+          >
+            <img [src]="project.image" [alt]="project.title[i18n.lang()]" />
+          </button>
+        }
+      </div>
+    </section>
+  </div>
+
+  <!-- Mobile : 3 zones R1 (précédent) / R2 (actuel, cliquable) / R3 (suivant + texte de R2) -->
+  <div class="mobile-view">
+    @if (showAbout()) {
+      <section class="mobile-about">
+        <div class="identity">
+          <img class="photo" src="assets/profile.jpg" alt="Raphaël Masset" />
+          <div class="who">
+            <p class="name">{{ copy.name }}</p>
+            <p class="roles">
+              {{ copy.role1 }}<br />
+              {{ copy.role2 }}<br />
+              {{ copy.role3 }}
+            </p>
+          </div>
+        </div>
+        <div class="c1-actions">
+          <a [href]="linkedin" target="_blank" rel="noopener">{{ copy.linkedin }}</a>
+          <a [href]="github" target="_blank" rel="noopener">{{ copy.github }}</a>
+          <button class="contact-btn" type="button" (click)="openContact()">{{ copy.contact }}</button>
+        </div>
+        <p class="letter">{{ copy.coverLetter }}</p>
+        <div class="lang-switch">
+          <button type="button" [class.active]="i18n.lang() === 'fr'" (click)="i18n.set('fr')">FR</button>
+          <span>/</span>
+          <button type="button" [class.active]="i18n.lang() === 'en'" (click)="i18n.set('en')">EN</button>
+        </div>
+      </section>
+    } @else {
+      <div class="mobile-lang">
+        <button type="button" [class.active]="i18n.lang() === 'fr'" (click)="i18n.set('fr')">FR</button>
+        <span>/</span>
+        <button type="button" [class.active]="i18n.lang() === 'en'" (click)="i18n.set('en')">EN</button>
+      </div>
+      <div class="mobile-reel" (scroll)="onMobileScroll($event)">
+        <div class="mobile-spacer"></div>
+        @for (project of projects; track project.slug; let i = $index) {
+          <article class="mobile-slide" [class.is-current]="i === portfolio.index()">
+            @if (i === portfolio.index()) {
+              <button class="mobile-hit" type="button" (click)="openProject(i)">
+                <img [src]="project.image" [alt]="project.title[i18n.lang()]" />
+                <div class="mobile-on-current">
+                  <span>{{ portfolio.title() }}</span>
+                  <span>{{ copy.viewProject }}</span>
+                </div>
+              </button>
+            } @else {
+              <img [src]="project.image" [alt]="project.title[i18n.lang()]" />
+              @if (i === portfolio.index() + 1) {
+                <p class="mobile-on-next">{{ portfolio.description() }}</p>
+              }
+            }
+          </article>
+        }
+        <div class="mobile-spacer"></div>
+      </div>
+    }
+  </div>
+</div>
+
+@if (contactOpen()) {
+  <div class="modal-backdrop" (click)="closeContact()">
+    <form class="modal" (click)="$event.stopPropagation()" (submit)="onContactSubmit($event)">
+      <h2>{{ copy.contactTitle }}</h2>
+      <label>
+        {{ copy.contactName }}
+        <input name="name" [(ngModel)]="contactName" autocomplete="name" />
+      </label>
+      <label>
+        {{ copy.contactEmail }}
+        <input name="email" type="email" [(ngModel)]="contactEmail" autocomplete="email" />
+      </label>
+      <label>
+        {{ copy.contactMessage }}
+        <textarea name="message" rows="5" [(ngModel)]="contactMessage"></textarea>
+      </label>
+      @if (contactNotice()) {
+        <p class="notice">{{ contactNotice() }}</p>
+      }
+      <div class="modal-actions">
+        <button type="button" (click)="closeContact()">{{ copy.contactClose }}</button>
+        <button type="submit">{{ copy.contactSend }}</button>
+      </div>
+    </form>
+  </div>
+}

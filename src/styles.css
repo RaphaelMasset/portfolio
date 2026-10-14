@@ -1,0 +1,43 @@
+/* Reset + fond global. Outfit partout, comme Sequel Sans Display Heavy sur la maquette. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #2c2c2c;
+  color: #f3f3f3;
+  font-family: Outfit, sans-serif;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  overflow: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+@media (max-width: 900px) {
+  body {
+    overflow: auto;
+  }
+}

@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  min-height: 100%;
+  background: #2c2c2c;
+}
+
+.wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+
+.back {
+  background: none;
+  border: 0;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 28px;
+}
+
+img {
+  width: 100%;
+  height: min(52vh, 520px);
+  object-fit: cover;
+  background: #1c1c1c;
+}
+
+.copy {
+  margin-top: 24px;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.lead {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+p {
+  font-size: 16px;
+  line-height: 1.45;
+}

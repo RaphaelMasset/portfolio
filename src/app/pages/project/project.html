@@ -1,0 +1,15 @@
+<div class="wrap">
+  <button class="back" type="button" (click)="back()">← {{ copy.back }}</button>
+
+  @if (project) {
+    <img [src]="project.image" [alt]="project.title[i18n.lang()]" />
+    <div class="copy">
+      <h1>{{ project.title[i18n.lang()] }}</h1>
+      <p class="lead">{{ copy.placeholderLead }}</p>
+      <p>{{ project.description[i18n.lang()] }}</p>
+    </div>
+  } @else {
+    <p>{{ copy.placeholderLead }}</p>
+    <button class="back" type="button" (click)="back()">← {{ copy.back }}</button>
+  }
+</div>

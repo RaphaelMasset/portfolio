@@ -1,0 +1,439 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.page {
+  height: 100%;
+  background: #2c2c2c;
+}
+
+.about-toggle {
+  display: none;
+}
+
+.desktop-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(280px, 32%) 1fr;
+  grid-template-rows: minmax(220px, 1.15fr) auto minmax(260px, 1fr);
+  /* Nommer les zones évite de compter les lignes à la main si on ajoute une barre. */
+  grid-template-areas:
+    "c1 c2"
+    "meta meta"
+    "c3 c4";
+}
+
+.c1 {
+  grid-area: c1;
+  padding: 28px 28px 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.identity {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.photo {
+  width: 132px;
+  height: 132px;
+  object-fit: cover;
+  object-position: 50% 18%;
+  border-radius: 2px;
+  flex-shrink: 0;
+  filter: grayscale(1);
+}
+
+.name {
+  margin: 4px 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.roles {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.c1-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.c1-actions a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.contact-btn {
+  background: #f3f3f3;
+  color: #2c2c2c;
+  border: 0;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.c2 {
+  grid-area: c2;
+  padding: 28px 40px 16px 36px;
+  min-width: 0;
+}
+
+.c2-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.project-title {
+  margin: 0;
+  font-size: clamp(40px, 4.6vw, 72px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  padding-top: 8px;
+  flex-shrink: 0;
+}
+
+.lang-switch button {
+  background: none;
+  border: 0;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lang-switch button.active {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.project-desc {
+  margin: 22px 0 0;
+  max-width: 52rem;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.meta {
+  grid-area: meta;
+  display: grid;
+  grid-template-columns: minmax(280px, 32%) 1fr auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+}
+
+.meta-left,
+.meta-mid,
+.meta-right {
+  padding: 12px 28px;
+}
+
+.meta-left {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.meta-right {
+  text-align: right;
+}
+
+.meta-label {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+.meta-value {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.c3 {
+  grid-area: c3;
+  padding: 22px 28px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.letter {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  max-width: 28rem;
+}
+
+.c4 {
+  grid-area: c4;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  padding: 18px 0 22px 18px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.c4:active {
+  cursor: grabbing;
+}
+
+.track {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  /* Le GPU composite ce calque : pas de recalcul de layout pendant le scroll. */
+  will-change: transform;
+}
+
+.slide {
+  flex: 0 0 150px;
+  width: 150px;
+  height: 150px;
+  padding: 0;
+  border: 0;
+  background: #1c1c1c;
+  cursor: pointer;
+  overflow: hidden;
+  transform-origin: left bottom;
+  will-change: transform;
+}
+
+.slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mobile-view {
+  display: none;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  z-index: 40;
+  padding: 20px;
+}
+
+.modal {
+  width: min(440px, 100%);
+  background: #3a3a3a;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal h2 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.modal input,
+.modal textarea {
+  background: #2c2c2c;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 8px 10px;
+  font-size: 15px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.modal-actions button {
+  border: 0;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.modal-actions button[type="button"] {
+  background: transparent;
+  color: #fff;
+}
+
+.modal-actions button[type="submit"] {
+  background: #f3f3f3;
+  color: #2c2c2c;
+}
+
+.notice {
+  margin: 0;
+  font-size: 13px;
+  color: #ffd9a0;
+}
+
+@media (max-width: 900px) {
+  .desktop-grid {
+    display: none;
+  }
+
+  .about-toggle {
+    display: block;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 20;
+    background: rgba(44, 44, 44, 0.9);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .mobile-view {
+    display: block;
+    height: 100dvh;
+  }
+
+  .mobile-lang {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 20;
+    display: flex;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .mobile-lang button {
+    background: none;
+    border: 0;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 0;
+    font-weight: 700;
+  }
+
+  .mobile-lang button.active {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .mobile-about {
+    padding: 72px 20px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .mobile-reel {
+    height: 100dvh;
+    overflow-y: auto;
+    /* mandatory = pas d’arrêt entre deux images, comme le snap desktop. */
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+  }
+
+  .mobile-reel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-spacer {
+    height: 16vh;
+  }
+
+  .mobile-slide {
+    scroll-snap-align: center;
+    height: 58vh;
+    margin: 12px 16px;
+    position: relative;
+    overflow: hidden;
+    background: #1c1c1c;
+  }
+
+  .mobile-slide.is-current {
+    height: 64vh;
+  }
+
+  .mobile-slide img,
+  .mobile-hit {
+    width: 100%;
+    height: 100%;
+  }
+
+  .mobile-hit {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    position: relative;
+  }
+
+  .mobile-slide img {
+    object-fit: cover;
+  }
+
+  .mobile-on-current,
+  .mobile-on-next {
+    position: absolute;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    font-weight: 700;
+  }
+
+  .mobile-on-current {
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.65));
+    font-size: 16px;
+  }
+
+  .mobile-on-next {
+    bottom: 0;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.4;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  }
+}
