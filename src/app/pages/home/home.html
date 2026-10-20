@@ -48,6 +48,7 @@
           <p class="stack-label">{{ copy.availableLabel }}</p>
           <p class="stack-value">{{ copy.available }}</p>
         </div>
+        <p class="scroll-label">{{ copy.scroll }}</p>
       </div>
     </section>
 
@@ -62,7 +63,6 @@
       (pointerup)="onPointerUp($event)"
       (pointercancel)="onPointerUp($event)"
     >
-      <p class="scroll-label">{{ copy.scroll }}</p>
       <p class="c4-counter">{{ portfolio.counter() }}</p>
       <div class="c4-window">
       <div class="track" #track>

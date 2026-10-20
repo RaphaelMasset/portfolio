@@ -149,14 +149,10 @@
 }
 
 .scroll-label {
-  position: absolute;
-  top: var(--gutter);
-  left: var(--gutter);
   margin: 0;
   font-size: 14.3px;
   font-weight: 600;
   line-height: 1;
-  z-index: 2;
 }
 
 .stack a.stack-value {
