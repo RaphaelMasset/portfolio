@@ -24,7 +24,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx ng build --configuration production --base-href /raphael-masset-portfolio/
+      - run: npx ng build --configuration production --base-href /portfolio/
       # SPA : un refresh sur /project/... doit renvoyer index.html
       - run: cp dist/portfolio-website/browser/index.html dist/portfolio-website/browser/404.html
       - uses: actions/upload-pages-artifact@v3
