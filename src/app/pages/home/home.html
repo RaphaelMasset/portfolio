@@ -1,4 +1,4 @@
-<div class="page" [class.about-open]="showAbout()">
+<div class="page">
   <!-- Bouton mobile : bascule C4 (carrousel) ↔ C1+C3 -->
   <button class="about-toggle" type="button" (click)="toggleAbout()">
     {{ showAbout() ? copy.work : copy.about }}
@@ -17,39 +17,39 @@
           </p>
         </div>
       </div>
-      <div class="c1-actions">
-        <a [href]="linkedin" target="_blank" rel="noopener">{{ copy.linkedin }}</a>
-        <a [href]="github" target="_blank" rel="noopener">{{ copy.github }}</a>
-        <button class="contact-btn" type="button" (click)="openContact()">{{ copy.contact }}</button>
+      <div class="c1-footer">
+        <div class="stack">
+          <p class="stack-label">{{ copy.servicesLabel }} :</p>
+          <p class="stack-value">{{ copy.serviceAnalysis }}</p>
+          <p class="stack-value">{{ copy.serviceDev }}</p>
+        </div>
+        <div class="stack stack-end">
+          <p class="stack-label">{{ copy.contact }} :</p>
+          <a class="stack-value" [href]="linkedin" target="_blank" rel="noopener">{{ copy.linkedin }}</a>
+          <a class="stack-value" [href]="github" target="_blank" rel="noopener">{{ copy.github }}</a>
+        </div>
       </div>
     </section>
 
     <section class="c2">
-      <div class="c2-top">
-        <h1 class="project-title">{{ portfolio.title() }}</h1>
-        <div class="lang-switch">
-          <button type="button" [class.active]="i18n.lang() === 'fr'" (click)="i18n.set('fr')">FR</button>
-          <span>/</span>
-          <button type="button" [class.active]="i18n.lang() === 'en'" (click)="i18n.set('en')">EN</button>
+      <div class="c2-main">
+        <div class="c2-top">
+          <h1 class="project-title">{{ portfolio.title() }}</h1>
+          <div class="lang-switch">
+            <button type="button" [class.active]="i18n.lang() === 'fr'" (click)="i18n.set('fr')">FR</button>
+            <span>/</span>
+            <button type="button" [class.active]="i18n.lang() === 'en'" (click)="i18n.set('en')">EN</button>
+          </div>
+        </div>
+        <p class="project-desc">{{ portfolio.description() }}</p>
+      </div>
+      <div class="c2-footer">
+        <div class="stack">
+          <p class="stack-label">{{ copy.availableLabel }}</p>
+          <p class="stack-value">{{ copy.available }}</p>
         </div>
       </div>
-      <p class="project-desc">{{ portfolio.description() }}</p>
     </section>
-
-    <div class="meta">
-      <div class="meta-left">
-        <p class="meta-label">{{ copy.servicesLabel }}</p>
-        <p class="meta-value">{{ copy.services }}</p>
-      </div>
-      <div class="meta-mid">
-        <p class="meta-label">{{ copy.availableLabel }}</p>
-        <p class="meta-value">{{ copy.available }}</p>
-      </div>
-      <div class="meta-right">
-        <p class="meta-label">{{ copy.scroll }}</p>
-        <p class="meta-value counter">{{ portfolio.counter() }}</p>
-      </div>
-    </div>
 
     <section class="c3">
       <p class="letter">{{ copy.coverLetter }}</p>
@@ -62,24 +62,32 @@
       (pointerup)="onPointerUp($event)"
       (pointercancel)="onPointerUp($event)"
     >
+      <p class="scroll-label">{{ copy.scroll }}</p>
+      <p class="c4-counter">{{ portfolio.counter() }}</p>
+      <div class="c4-window">
       <div class="track" #track>
         @for (project of projects; track project.slug; let i = $index) {
           <button
             #slideEl
             class="slide"
             type="button"
-            [class.is-active]="i === portfolio.index()"
             (click)="openProject(i, $event)"
           >
             <img [src]="project.image" [alt]="project.title[i18n.lang()]" />
           </button>
         }
       </div>
+      </div>
     </section>
   </div>
 
-  <!-- Mobile : 3 zones R1 (précédent) / R2 (actuel, cliquable) / R3 (suivant + texte de R2) -->
+  <!-- Mobile : C1+C2 empilés (À propos) / carrousel d’images (projets) -->
   <div class="mobile-view">
+    <div class="lang-switch mobile-lang">
+      <button type="button" [class.active]="i18n.lang() === 'fr'" (click)="i18n.set('fr')">FR</button>
+      <span>/</span>
+      <button type="button" [class.active]="i18n.lang() === 'en'" (click)="i18n.set('en')">EN</button>
+    </div>
     @if (showAbout()) {
       <section class="mobile-about">
         <div class="identity">
@@ -93,45 +101,42 @@
             </p>
           </div>
         </div>
-        <div class="c1-actions">
-          <a [href]="linkedin" target="_blank" rel="noopener">{{ copy.linkedin }}</a>
-          <a [href]="github" target="_blank" rel="noopener">{{ copy.github }}</a>
-          <button class="contact-btn" type="button" (click)="openContact()">{{ copy.contact }}</button>
+        <div class="mobile-meta">
+          <div class="stack">
+            <p class="stack-label">{{ copy.servicesLabel }} :</p>
+            <p class="stack-value">{{ copy.serviceAnalysis }}</p>
+            <p class="stack-value">{{ copy.serviceDev }}</p>
+          </div>
+          <div class="stack">
+            <p class="stack-label">{{ copy.availableLabel }}</p>
+            <p class="stack-value">{{ copy.available }}</p>
+          </div>
+          <div class="stack">
+            <p class="stack-label">{{ copy.contact }} :</p>
+            <a class="stack-value" [href]="linkedin" target="_blank" rel="noopener">{{ copy.linkedin }}</a>
+            <a class="stack-value" [href]="github" target="_blank" rel="noopener">{{ copy.github }}</a>
+          </div>
         </div>
         <p class="letter">{{ copy.coverLetter }}</p>
-        <div class="lang-switch">
-          <button type="button" [class.active]="i18n.lang() === 'fr'" (click)="i18n.set('fr')">FR</button>
-          <span>/</span>
-          <button type="button" [class.active]="i18n.lang() === 'en'" (click)="i18n.set('en')">EN</button>
-        </div>
       </section>
     } @else {
-      <div class="mobile-lang">
-        <button type="button" [class.active]="i18n.lang() === 'fr'" (click)="i18n.set('fr')">FR</button>
-        <span>/</span>
-        <button type="button" [class.active]="i18n.lang() === 'en'" (click)="i18n.set('en')">EN</button>
-      </div>
-      <div class="mobile-reel" (scroll)="onMobileScroll($event)">
+      <div class="mobile-reel" #mobileReel (scroll)="onMobileScroll($event)">
         <div class="mobile-spacer"></div>
         @for (project of projects; track project.slug; let i = $index) {
-          <article class="mobile-slide" [class.is-current]="i === portfolio.index()">
-            @if (i === portfolio.index()) {
-              <button class="mobile-hit" type="button" (click)="openProject(i)">
-                <img [src]="project.image" [alt]="project.title[i18n.lang()]" />
-                <div class="mobile-on-current">
-                  <span>{{ portfolio.title() }}</span>
-                  <span>{{ copy.viewProject }}</span>
-                </div>
-              </button>
-            } @else {
+          <article class="mobile-slide">
+            <button class="mobile-hit" type="button" (click)="openProject(i)">
               <img [src]="project.image" [alt]="project.title[i18n.lang()]" />
-              @if (i === portfolio.index() + 1) {
-                <p class="mobile-on-next">{{ portfolio.description() }}</p>
-              }
-            }
+            </button>
           </article>
         }
         <div class="mobile-spacer"></div>
+      </div>
+      <div class="mobile-hud">
+        <div class="mobile-hud-mid">
+          <span class="mobile-name">{{ projects[mobileCurrent()].title[i18n.lang()] }}</span>
+          <span class="mobile-cta">{{ copy.viewProject }}</span>
+        </div>
+        <p class="mobile-desc">{{ projects[mobileCurrent()].description[i18n.lang()] }}</p>
       </div>
     }
   </div>

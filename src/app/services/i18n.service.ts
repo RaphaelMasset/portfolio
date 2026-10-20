@@ -9,7 +9,8 @@ const COPY = {
     role2: 'Développeur',
     role3: 'Data Analyst',
     servicesLabel: 'Services',
-    services: 'Analyse, Development',
+    serviceAnalysis: 'Analyse de données',
+    serviceDev: 'Développement',
     availableLabel: 'Disponible',
     available: "Octobre '26",
     contact: 'Contact',
@@ -17,7 +18,7 @@ const COPY = {
     linkedin: 'LinkedIn',
     scroll: 'Scroll',
     coverLetter:
-      'Ingénieur développeur et data analyst, je construis des outils utiles — cartes, interfaces, et petits systèmes qui tiennent la route. Lettre courte pour l’instant, texte définitif plus tard.',
+      'Ingénieur développeur et data analyst, je construis des outils utiles ; cartes, interfaces, et petits systèmes qui tiennent la route.',
     contactTitle: 'Me contacter',
     contactName: 'Nom',
     contactEmail: 'Email',
@@ -37,7 +38,8 @@ const COPY = {
     role2: 'Developer',
     role3: 'Data Analyst',
     servicesLabel: 'Services',
-    services: 'Analysis, Development',
+    serviceAnalysis: 'Data analysis',
+    serviceDev: 'Development',
     availableLabel: 'Available for work',
     available: "October '26",
     contact: 'Contact',
@@ -70,10 +72,6 @@ export class I18nService {
   readonly lang = signal<Lang>('fr');
 
   readonly copy = computed(() => COPY[this.lang()]);
-
-  toggle(): void {
-    this.lang.update((current) => (current === 'fr' ? 'en' : 'fr'));
-  }
 
   set(lang: Lang): void {
     this.lang.set(lang);

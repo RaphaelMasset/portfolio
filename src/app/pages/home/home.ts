@@ -1,5 +1,4 @@
 import {
-  AfterViewInit,
   Component,
   ElementRef,
   NgZone,
@@ -8,6 +7,7 @@ import {
   QueryList,
   ViewChild,
   ViewChildren,
+  afterEveryRender,
   inject,
   signal
 } from '@angular/core';
@@ -22,7 +22,7 @@ import { PortfolioService } from '../../services/portfolio.service';
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
-export class Home implements OnInit, AfterViewInit, OnDestroy {
+export class Home implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly zone = inject(NgZone);
   readonly i18n = inject(I18nService);
@@ -33,6 +33,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
 
   readonly contactOpen = signal(false);
   readonly contactNotice = signal('');
+  readonly mobileCurrent = signal(0);
   contactName = '';
   contactEmail = '';
   contactMessage = '';
@@ -45,15 +46,23 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
    * qu’Angular relance tout le template (C1/C2/C3) à chaque event molette.
    */
   private pos = 0;
-  private snapTimer: number | null = null;
-  private snapRaf = 0;
-  private paintRaf = 0;
-  private snapping = false;
+  private goal = 0;
+  private vel = 0;
+  private lastTick = 0;
+  private lastInputAt = 0;
+  /** true = le doigt ou le trackpad colle `pos` à `goal`. false = un ressort rattrape `goal`. */
+  private direct = false;
+  private physicsRaf = 0;
 
   private dragPointerId: number | null = null;
   private dragStartX = 0;
   private dragStartPos = 0;
   private dragged = false;
+
+  private mobileNeedsHome = true;
+  private mobileReady = false;
+  private mobileIgnoreUntil = 0;
+  private mobileScaleRaf = 0;
 
   // 150px d’image + 12px de gap = un cran d’index.
   private readonly slotPx = 162;
@@ -61,12 +70,33 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   private readonly largePx = 320;
 
   @ViewChild('track') private track?: ElementRef<HTMLElement>;
+  @ViewChild('mobileReel') private mobileReel?: ElementRef<HTMLElement>;
   @ViewChildren('slideEl') private slideEls?: QueryList<ElementRef<HTMLElement>>;
 
   private onWheelBound = (event: WheelEvent) => this.onWheel(event);
 
+  constructor() {
+    // Angular peut recréer les slides (changement de langue, perte de focus).
+    // On repeint pour que la slide active (première, ou dernière choisie) reste grande.
+    afterEveryRender(() => {
+      this.paint();
+      const reel = this.mobileReel?.nativeElement;
+      if (!reel) {
+        return;
+      }
+      if (this.mobileNeedsHome) {
+        this.mobileNeedsHome = false;
+        this.homeMobileReel(reel);
+      }
+      if (this.mobileReady) {
+        this.scaleMobileSlides(reel);
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.pos = this.portfolio.index();
+    this.goal = this.pos;
     // runOutsideAngular : la molette ne doit PAS déclencher de change detection.
     // { passive: false } : obligatoire pour preventDefault (sinon la page scrolle).
     this.zone.runOutsideAngular(() => {
@@ -74,15 +104,12 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  ngAfterViewInit(): void {
-    this.paint();
-  }
-
   ngOnDestroy(): void {
     window.removeEventListener('wheel', this.onWheelBound);
-    this.clearSnap();
-    if (this.paintRaf) {
-      cancelAnimationFrame(this.paintRaf);
+    this.stopPhysics();
+    this.vel = 0;
+    if (this.mobileScaleRaf) {
+      cancelAnimationFrame(this.mobileScaleRaf);
     }
   }
 
@@ -95,7 +122,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   }
 
   isMobile(): boolean {
-    return window.matchMedia('(max-width: 900px)').matches;
+    return window.matchMedia('(max-width: 600px)').matches;
   }
 
   private onWheel(event: WheelEvent): void {
@@ -104,30 +131,25 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     }
 
     event.preventDefault();
-    this.snapping = false;
-    this.cancelRaf();
-
-    // deltaMode : 0 = pixels (trackpad), 1 = lignes (molette crantée).
-    // On ramène tout en “pixels” pour que les deux aient le même feeling.
+    const now = performance.now();
     const pixels =
       event.deltaMode === 1 ? event.deltaY * 16 : event.deltaMode === 2 ? event.deltaY * window.innerHeight : event.deltaY;
-    this.pos = this.clamp(this.pos + pixels * 0.0044);
-    this.schedulePaint();
-    this.queueSnap();
-  }
-
-  /**
-   * Plusieurs events molette arrivent dans la même frame (surtout trackpad).
-   * On ne repeint qu’une fois par frame → 60 fps stables.
-   */
-  private schedulePaint(): void {
-    if (this.paintRaf) {
-      return;
+    // 240 px = une image : deux fois moins vite. Un cran (~120 px) ne fait que la moitié du chemin.
+    const deltaPos = pixels / 240;
+    const discrete = event.deltaMode !== 0 || Math.abs(pixels) >= 50;
+    this.goal = this.clamp(this.goal + deltaPos);
+    if (discrete) {
+      this.direct = false;
+      this.vel = 0;
+    } else {
+      const dt = Math.max(8, this.lastInputAt === 0 ? 16 : now - this.lastInputAt);
+      const sample = deltaPos / dt;
+      this.vel = Math.max(-0.0012, Math.min(0.0012, this.vel * 0.5 + sample * 0.5));
+      this.pos = this.goal;
+      this.direct = true;
     }
-    this.paintRaf = requestAnimationFrame(() => {
-      this.paintRaf = 0;
-      this.paint();
-    });
+    this.lastInputAt = now;
+    this.startPhysics();
   }
 
   /**
@@ -137,19 +159,33 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   private paint(): void {
     const track = this.track?.nativeElement;
     const slides = this.slideEls;
-    if (!track || !slides) {
+    if (!track || !slides || slides.length === 0) {
       return;
     }
 
-    track.style.transform = `translate3d(${-this.pos * this.slotPx}px, 0, 0)`;
-
     const maxScale = this.largePx / this.basePx;
-    slides.forEach((ref, i) => {
-      const t = Math.max(0, 1 - Math.abs(this.pos - i));
-      const scale = 1 + t * (maxScale - 1);
+    const list = slides.toArray();
+    const scales = list.map((_, i) => 1 + this.smooth(1 - Math.abs(this.pos - i)) * (maxScale - 1));
+
+    // scale() ne pousse pas les voisines : sans ce décalage, la grande recouvre la suivante.
+    let extraBefore = 0;
+    const push = scales.map((scale) => {
+      const shift = extraBefore;
+      extraBefore += this.basePx * (scale - 1);
+      return shift;
+    });
+
+    const last = list.length - 1;
+    const i0 = Math.min(last, Math.max(0, Math.floor(this.pos)));
+    const f = Math.min(1, Math.max(0, this.pos - i0));
+    const leftOf = (i: number) => i * this.slotPx + push[i];
+    const anchor = i0 === last ? leftOf(last) : leftOf(i0) * (1 - f) + leftOf(i0 + 1) * f;
+    track.style.transform = `translate3d(${-anchor}px, 0, 0)`;
+
+    list.forEach((ref, i) => {
       const el = ref.nativeElement;
-      el.style.transform = `scale(${scale})`;
-      el.style.zIndex = String(Math.round(t * 10));
+      el.style.transform = `translate3d(${push[i]}px, 0, 0) scale(${scales[i]})`;
+      el.style.zIndex = String(Math.round((scales[i] - 1) * 10));
     });
 
     const rounded = Math.round(this.pos);
@@ -158,75 +194,74 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  /** 120 ms sans molette = l’utilisateur s’est arrêté → on aligne une image. */
-  private queueSnap(): void {
-    if (this.snapTimer !== null) {
-      window.clearTimeout(this.snapTimer);
-    }
-    this.snapTimer = window.setTimeout(() => this.snapToNearest(), 120);
-  }
-
-  private snapToNearest(): void {
-    const target = Math.round(this.clamp(this.pos));
-    this.animateTo(target);
-  }
-
-  /** easeOutQuart : ça continue un peu puis se cale, pas un arrêt au milieu. */
-  private animateTo(target: number): void {
-    this.snapping = true;
-    const start = this.pos;
-    const distance = target - start;
-    if (Math.abs(distance) < 0.001) {
-      this.pos = target;
-      this.paint();
-      this.snapping = false;
-      return;
-    }
-
-    const duration = 380;
-    const startedAt = performance.now();
-
-    const tick = (now: number) => {
-      if (!this.snapping) {
-        return;
-      }
-      const t = Math.min(1, (now - startedAt) / duration);
-      const eased = 1 - Math.pow(1 - t, 4);
-      this.pos = start + distance * eased;
-      this.paint();
-      if (t < 1) {
-        this.snapRaf = requestAnimationFrame(tick);
-      } else {
-        this.pos = target;
-        this.paint();
-        this.snapping = false;
-      }
-    };
-
-    this.cancelRaf();
-    this.zone.runOutsideAngular(() => {
-      this.snapRaf = requestAnimationFrame(tick);
-    });
-  }
-
   private clamp(value: number): number {
     return Math.max(0, Math.min(this.projects.length - 1, value));
   }
 
-  private clearSnap(): void {
-    if (this.snapTimer !== null) {
-      window.clearTimeout(this.snapTimer);
-      this.snapTimer = null;
-    }
-    this.cancelRaf();
-    this.snapping = false;
+  /** Un seul cran (moitié du chemin) ne change pas d’image. */
+  private snapTarget(): number {
+    const base = Math.trunc(this.goal);
+    const frac = this.goal - base;
+    const step = frac > 0.5 ? 1 : frac < -0.5 ? -1 : 0;
+    return this.clamp(base + step);
   }
 
-  private cancelRaf(): void {
-    if (this.snapRaf) {
-      cancelAnimationFrame(this.snapRaf);
-      this.snapRaf = 0;
+  private smooth(t: number): number {
+    const x = Math.max(0, Math.min(1, t));
+    return x * x * (3 - 2 * x);
+  }
+
+  private startPhysics(): void {
+    if (this.physicsRaf) {
+      return;
     }
+    this.lastTick = performance.now();
+    this.zone.runOutsideAngular(() => {
+      const loop = (now: number) => {
+        this.physicsRaf = requestAnimationFrame(loop);
+        this.stepPhysics(now);
+      };
+      this.physicsRaf = requestAnimationFrame(loop);
+    });
+  }
+
+  private stopPhysics(): void {
+    if (this.physicsRaf) {
+      cancelAnimationFrame(this.physicsRaf);
+      this.physicsRaf = 0;
+    }
+  }
+
+  /**
+   * Pendant l’input : la position suit le geste.
+   * Après : inertie (vitesse du geste) puis ressort vers l’image cible — pas de durée fixe.
+   */
+  private stepPhysics(now: number): void {
+    const dt = Math.min(32, now - this.lastTick) || 16;
+    this.lastTick = now;
+    const idle = now - this.lastInputAt > 90;
+    if (idle) {
+      this.direct = false;
+      this.goal = this.snapTarget();
+    }
+    if (this.direct) {
+      this.paint();
+      return;
+    }
+
+    const omega = 0.014;
+    this.vel += (omega * omega * (this.goal - this.pos) - 2 * omega * this.vel) * dt;
+    this.pos += this.vel * dt;
+    this.pos = this.clamp(this.pos);
+    if (Math.abs(this.pos - this.goal) < 0.002 && Math.abs(this.vel) < 0.00005) {
+      this.pos = this.goal;
+      this.vel = 0;
+      this.paint();
+      this.stopPhysics();
+      return;
+    }
+
+    this.paint();
   }
 
   onPointerDown(event: PointerEvent): void {
@@ -237,8 +272,11 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     this.dragStartX = event.clientX;
     this.dragStartPos = this.pos;
     this.dragged = false;
-    this.snapping = false;
-    this.cancelRaf();
+    this.vel = 0;
+    this.goal = this.pos;
+    this.direct = true;
+    this.lastInputAt = performance.now();
+    this.stopPhysics();
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
 
@@ -246,12 +284,19 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     if (this.dragPointerId !== event.pointerId) {
       return;
     }
+    const now = performance.now();
     const dx = event.clientX - this.dragStartX;
     if (Math.abs(dx) > 8) {
       this.dragged = true;
     }
-    this.pos = this.clamp(this.dragStartPos - dx / this.slotPx);
-    this.schedulePaint();
+    const next = this.clamp(this.dragStartPos - dx / this.slotPx);
+    const dt = Math.max(8, now - this.lastInputAt);
+    this.vel = Math.max(-0.004, Math.min(0.004, (next - this.pos) / dt));
+    this.pos = next;
+    this.goal = next;
+    this.direct = true;
+    this.lastInputAt = now;
+    this.startPhysics();
   }
 
   onPointerUp(event: PointerEvent): void {
@@ -259,7 +304,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     this.dragPointerId = null;
-    this.queueSnap();
+    this.lastInputAt = performance.now();
+    this.startPhysics();
   }
 
   openProject(index: number, event?: Event): void {
@@ -268,28 +314,116 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
       event?.preventDefault();
       return;
     }
+    if (this.isMobile() && index !== this.mobileCurrent()) {
+      return;
+    }
+    this.stopPhysics();
+    this.vel = 0;
+    this.direct = false;
     this.pos = index;
+    this.goal = index;
     this.paint();
     this.portfolio.select(index);
     void this.router.navigate(['/project', this.projects[index].slug]);
   }
 
   onMobileScroll(event: Event): void {
-    const el = event.target as HTMLElement;
-    const slides = el.querySelectorAll('.mobile-slide');
-    const mid = el.scrollTop + el.clientHeight * 0.45;
-    let best = 0;
-    slides.forEach((node, i) => {
+    const scroller = event.target as HTMLElement;
+    this.scheduleMobileScale(scroller);
+    if (!this.mobileReady || performance.now() < this.mobileIgnoreUntil) {
+      return;
+    }
+    this.syncIndexFromCrossing(scroller);
+  }
+
+  private homeMobileReel(reel: HTMLElement): void {
+    this.mobileReady = false;
+    this.mobileIgnoreUntil = performance.now() + 400;
+    this.mobileCurrent.set(0);
+    this.portfolio.select(0);
+    const first = reel.querySelector('.mobile-slide');
+    requestAnimationFrame(() => {
+      first?.scrollIntoView({ block: 'center', behavior: 'instant' });
+      this.scaleMobileSlides(reel);
+      this.mobileReady = true;
+    });
+  }
+
+  private scheduleMobileScale(scroller: HTMLElement): void {
+    if (this.mobileScaleRaf) {
+      return;
+    }
+    this.mobileScaleRaf = requestAnimationFrame(() => {
+      this.mobileScaleRaf = 0;
+      this.scaleMobileSlides(scroller);
+    });
+  }
+
+  /** Scale GPU (pas de width) : le layout du scroll ne bouge pas. */
+  private scaleMobileSlides(scroller: HTMLElement): void {
+    const slides = scroller.querySelectorAll('.mobile-slide');
+    const viewMid = scroller.scrollTop + scroller.clientHeight * 0.5;
+    const narrow = scroller.clientWidth < 300;
+    const minScale = 56 / 84;
+    slides.forEach((node) => {
       const slide = node as HTMLElement;
-      if (slide.offsetTop <= mid) {
-        best = i;
+      const img = slide.querySelector('img') as HTMLElement | null;
+      if (!img) {
+        return;
+      }
+      if (narrow) {
+        img.style.transform = 'scale(1)';
+        return;
+      }
+      const center = slide.offsetTop + slide.offsetHeight / 2;
+      const dist = Math.abs(center - viewMid);
+      const scale = minScale + this.smooth(1 - dist / (scroller.clientHeight * 0.75)) * (1 - minScale);
+      img.style.transform = `scale(${scale})`;
+    });
+  }
+
+  /** Titre / CTA / desc : projet dont l’image croise la ligne du texte. */
+  private syncIndexFromCrossing(scroller: HTMLElement): void {
+    const name = scroller.parentElement?.querySelector('.mobile-name');
+    if (!name) {
+      return;
+    }
+    const box = name.getBoundingClientRect();
+    const line = box.top + box.height / 2;
+    const slides = Array.from(scroller.querySelectorAll('.mobile-slide')) as HTMLElement[];
+    let best = this.mobileCurrent();
+    let bestCover = -1;
+    slides.forEach((slide, i) => {
+      const img = slide.querySelector('img');
+      if (!img) {
+        return;
+      }
+      const rect = img.getBoundingClientRect();
+      if (rect.top < line && rect.bottom > line) {
+        const cover = Math.min(rect.bottom, line + 1) - Math.max(rect.top, line - 1);
+        if (cover > bestCover) {
+          bestCover = cover;
+          best = i;
+        }
       }
     });
-    this.portfolio.select(best);
+    this.setMobileIndex(best);
+  }
+
+  private setMobileIndex(index: number): void {
+    if (index === this.mobileCurrent()) {
+      return;
+    }
+    this.mobileCurrent.set(index);
+    this.portfolio.select(index);
   }
 
   toggleAbout(): void {
     this.showAbout.update((value) => !value);
+    if (!this.showAbout()) {
+      this.mobileNeedsHome = true;
+      this.mobileReady = false;
+    }
   }
 
   openContact(): void {
